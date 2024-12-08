@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Generator</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --accent-color: #4CAF50;
+            --accent-hover: #45a049;
+            --border-color: #333333;
+            --error-color: #ff4444;
+            --success-color: #4CAF50;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: var(--bg-secondary);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        h1, h2 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .experience-section {
+            background-color: var(--bg-primary);
+            padding: 1.5rem;
+            margin-bottom: 1.2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-header {
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .remove-btn {
+            background-color: var(--error-color);
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .remove-btn:hover:not(:disabled) {
+            background-color: #cc0000;
+        }
+
+        .loading {
+            opacity: 0.7;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            margin-left: 1rem;
+            border: 3px solid var(--bg-secondary);
+            border-top: 3px solid var(--text-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .submit-container {
+            display: flex;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .status-message {
+            margin-left: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        /* Required field indicator */
+        label[for*="name"]::after,
+        label[for*="email"]::after,
+        label[for*="phone"]::after,
+        label[for*="address"]::after {
+            content: " *";
+            color: var(--error-color);
+        }
+
+        /* Placeholder styling */
+        ::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            textarea {
+                padding: 0.7rem;
+            }
+
+            .experience-section {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Resume Generator</h1>
+        <form id="resumeForm" action="/generate-pdf" method="post">
+            <div class="section-header">
+                <h2>Personal Information</h2>
+            </div>
+            <div class="form-group">
+                <label for="name">Full Name *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone *</label>
+                <input type="tel" id="phone" name="phone" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Address *</label>
+                <input type="text" id="address" name="address" required>
+            </div>
+
+            <div class="section-header">
+                <h2>Education</h2>
+            </div>
+            <div class="form-group">
+                <label for="university">University</label>
+                <input type="text" id="university" name="university">
+            </div>
+            <div class="form-group">
+                <label for="degree">Degree</label>
+                <input type="text" id="degree" name="degree">
+            </div>
+            <div class="form-group">
+                <label for="graduation">Graduation Date</label>
+                <input type="text" id="graduation" name="graduation" placeholder="e.g., May 2024">
+            </div>
+            <div class="form-group">
+                <label for="gpa">GPA</label>
+                <input type="text" id="gpa" name="gpa">
+            </div>
+
+            <div class="section-header">
+                <h2>Work Experience</h2>
+                <button type="button" onclick="addExperience()" style="margin-top: 10px;">Add Experience</button>
+            </div>
+            <div id="experienceContainer">
+                <!-- Experience sections will be added here -->
+            </div>
+
+            <div class="section-header">
+                <h2>Projects</h2>
+                <button type="button" onclick="addProject()" style="margin-top: 10px;">Add Project</button>
+            </div>
+            <div id="projectContainer">
+                <!-- Project sections will be added here -->
+            </div>
+
+            <div class="section-header">
+                <h2>Technical Skills</h2>
+            </div>
+            <div class="form-group">
+                <label for="programming_skills">Programming Languages</label>
+                <input type="text" id="programming_skills" name="programming_skills" placeholder="e.g., Python, Java, C++">
+            </div>
+            <div class="form-group">
+                <label for="web_skills">Web Technologies</label>
+                <input type="text" id="web_skills" name="web_skills" placeholder="e.g., React, Node.js, HTML/CSS">
+            </div>
+            <div class="form-group">
+                <label for="tools">Development Tools</label>
+                <input type="text" id="tools" name="tools" placeholder="e.g., Git, Docker, VS Code">
+            </div>
+
+            <div class="submit-container">
+                <button type="submit" id="submitBtn">Generate PDF</button>
+                <div class="spinner" id="loadingSpinner"></div>
+                <span class="status-message" id="statusMessage">Generating your resume...</span>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let experienceCount = 0;
+        let projectCount = 0;
+
+        function addExperience() {
+            const container = document.getElementById('experienceContainer');
+            const section = document.createElement('div');
+            section.className = 'experience-section';
+            section.innerHTML = `
+                <div class="form-group">
+                    <label for="job_title_${experienceCount}">Job Title</label>
+                    <input type="text" id="job_title_${experienceCount}" placeholder="e.g., Software Engineer">
+                </div>
+                <div class="form-group">
+                    <label for="company_${experienceCount}">Company</label>
+                    <input type="text" id="company_${experienceCount}" placeholder="e.g., Tech Corp">
+                </div>
+                <div class="form-group">
+                    <label for="job_date_${experienceCount}">Date</label>
+                    <input type="text" id="job_date_${experienceCount}" placeholder="e.g., Jan 2020 - Present">
+                </div>
+                <div class="form-group">
+                    <label for="responsibilities_${experienceCount}">Responsibilities</label>
+                    <textarea id="responsibilities_${experienceCount}" rows="4" 
+                        placeholder="Enter each responsibility on a new line"></textarea>
+                </div>
+                <button type="button" class="remove-btn" onclick="removeExperience(this)">Remove Experience</button>
+            `;
+            container.appendChild(section);
+            experienceCount++;
+        }
+
+        function removeExperience(button) {
+            button.parentElement.remove();
+        }
+
+        function addProject() {
+            const container = document.getElementById('projectContainer');
+            const section = document.createElement('div');
+            section.className = 'experience-section';
+            section.innerHTML = `
+                <div class="form-group">
+                    <label for="project_name_${projectCount}">Project Name</label>
+                    <input type="text" id="project_name_${projectCount}" placeholder="e.g., Personal Portfolio Website">
+                </div>
+                <div class="form-group">
+                    <label for="project_tech_${projectCount}">Technologies Used</label>
+                    <input type="text" id="project_tech_${projectCount}" placeholder="e.g., React, Node.js, MongoDB">
+                </div>
+                <div class="form-group">
+                    <label for="project_date_${projectCount}">Date</label>
+                    <input type="text" id="project_date_${projectCount}" placeholder="e.g., Jan 2024">
+                </div>
+                <div class="form-group">
+                    <label for="project_description_${projectCount}">Project Description</label>
+                    <textarea id="project_description_${projectCount}" rows="4" 
+                        placeholder="Describe your project, its features, and your role. Each point on a new line."></textarea>
+                </div>
+                <button type="button" class="remove-btn" onclick="removeProject(this)">Remove Project</button>
+            `;
+            container.appendChild(section);
+            projectCount++;
+        }
+
+        function removeProject(button) {
+            button.parentElement.remove();
+        }
+
+        document.getElementById('resumeForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            // Disable submit button and show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('loadingSpinner');
+            const statusMsg = document.getElementById('statusMessage');
+            
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            statusMsg.style.display = 'inline-block';
+            
+            // Gather all experiences
+            const experiences = [];
+            document.querySelectorAll('.experience-section').forEach((section) => {
+                if (section.querySelector('input[id^="job_title"]')) {
+                    experiences.push({
+                        job_title: section.querySelector('input[id^="job_title"]').value,
+                        company: section.querySelector('input[id^="company"]').value,
+                        job_date: section.querySelector('input[id^="job_date"]').value,
+                        responsibilities: section.querySelector('textarea[id^="responsibilities"]').value
+                    });
+                }
+            });
+
+            // Gather all projects
+            const projects = [];
+            document.querySelectorAll('.experience-section').forEach((section) => {
+                if (section.querySelector('input[id^="project_name"]')) {
+                    projects.push({
+                        project_name: section.querySelector('input[id^="project_name"]').value,
+                        technologies: section.querySelector('input[id^="project_tech"]').value,
+                        date: section.querySelector('input[id^="project_date"]').value,
+                        description: section.querySelector('textarea[id^="project_description"]').value
+                    });
+                }
+            });
+
+            // Create form data
+            const formData = new FormData(this);
+            formData.set('experiences', JSON.stringify(experiences));
+            formData.set('projects', JSON.stringify(projects));
+
+            // Submit the form
+            fetch('/generate-pdf', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    statusMsg.textContent = 'Resume generated! Downloading...';
+                    return response.blob();
+                }
+                return response.json().then(err => {
+                    throw new Error(err.message || 'Failed to generate PDF');
+                });
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'resume.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                // Reset form state
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+                statusMsg.style.display = 'none';
+            })
+            .catch(error => {
+                // Reset form state and show error
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+                statusMsg.textContent = 'Error: ' + error.message;
+                statusMsg.style.color = '#ff0000';
+                
+                // Hide error message after 5 seconds
+                setTimeout(() => {
+                    statusMsg.style.display = 'none';
+                    statusMsg.style.color = '#666';
+                    statusMsg.textContent = 'Generating your resume...';
+                }, 5000);
+            });
+        };
+
+        // Add initial sections
+        addExperience();
+        addProject();
+    </script>
+</body>
+</html> 
